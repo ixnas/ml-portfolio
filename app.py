@@ -10,7 +10,9 @@ import matplotlib.pyplot as plt
 import json
 
 WIN_NAME = "image"
-DIR_NAME = os.path.join(".", "data")
+DIR_NAME_TRAIN = os.path.join(".", "data", "train")
+DIR_NAME_TEST = os.path.join(".", "data", "test")
+VISUAL_WORDS_COUNT = 150
 
 cv2.namedWindow(WIN_NAME)
 
@@ -123,21 +125,23 @@ def getHistograms(siftVectors, visualWords):
     return histograms
 
 
-def getTrainingData(categories):
-    (descriptorList, shiftVectors) = getSiftFeatures(categories)
-    visualWords = getVisualWords(150, descriptorList)
-    histograms = getHistograms(shiftVectors, visualWords)
-    return histograms
+def getTrainingData(trainingCategories, testingCategories):
+    (trainingDescriptorList, trainingSiftVectors) = getSiftFeatures(trainingCategories)
+    (testingDescriptorList, testingSiftVectors) = getSiftFeatures(testingCategories)
+    visualWords = getVisualWords(VISUAL_WORDS_COUNT, trainingDescriptorList)
+    trainingData = getHistograms(trainingSiftVectors, visualWords)
+    testingData = getHistograms(testingSiftVectors, visualWords)
+    return (trainingData, testingData)
 
 
-def getTrainedModel(trainingData):
+def getTrainedModel(trainingData, nNeighbors):
     totalImgCount = 0
     for images in trainingData.values():
         totalImgCount += len(images)
 
     labelEncoder = preprocessing.LabelEncoder()
     labels = np.empty(totalImgCount, np.str)
-    features = np.empty((totalImgCount, 150))
+    features = np.empty((totalImgCount, VISUAL_WORDS_COUNT))
 
     for category, categoryImages in trainingData.items():
         count = 0
@@ -147,7 +151,7 @@ def getTrainedModel(trainingData):
     
     encodedLabels = labelEncoder.fit_transform(labels)
 
-    model = KNeighborsClassifier(n_neighbors = 1)
+    model = KNeighborsClassifier(n_neighbors = nNeighbors)
     model.fit(features, labels)
 
     return model
@@ -181,10 +185,44 @@ def getCategories(dirName):
 
     return categories
 
+def knn(images, tests):
+    num_test = 0
+    correct_predict = 0
+    class_based = {}
+    
+    for test_key, test_val in tests.items():
+        class_based[test_key] = [0, 0] # [correct, all]
+        for tst in test_val:
+            predict_start = 0
+            #print(test_key)
+            minimum = 0
+            key = "a" #predicted
+            for train_key, train_val in images.items():
+                for train in train_val:
+                    if(predict_start == 0):
+                        minimum = distance.euclidean(tst, train)
+                        #minimum = L1_dist(tst,train)
+                        key = train_key
+                        predict_start += 1
+                    else:
+                        dist = distance.euclidean(tst, train)
+                        #dist = L1_dist(tst,train)
+                        if(dist < minimum):
+                            minimum = dist
+                            key = train_key
+            
+            if(test_key == key):
+                correct_predict += 1
+                class_based[test_key][0] += 1
+            num_test += 1
+            class_based[test_key][1] += 1
+            #print(minimum)
+    return [num_test, correct_predict, class_based]
 
 def showResults():
-    categories = getCategories(DIR_NAME)
-    trainingData = getTrainingData(categories)
+    trainingCategories = getCategories(DIR_NAME_TRAIN)
+    testCategories = getCategories(DIR_NAME_TEST)
+    (trainingData, testingData) = getTrainingData(trainingCategories, testCategories)
 
     """
     for category, categoryImages in categories.items():
@@ -194,9 +232,10 @@ def showResults():
             if cv2.waitKey(200) == ord("q"):
                 break
     """
-    return trainingData
+    return (trainingData, testingData)
 
-categories = showResults()
+(trainingData, testingData) = showResults()
+results = knn(trainingData, testingData)
 
 """
 class NumpyEncoder(json.JSONEncoder):
