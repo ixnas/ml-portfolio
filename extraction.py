@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from sklearn.cluster import KMeans
 from scipy.spatial import distance
+import matplotlib.pyplot as plt
 
 import processing
 

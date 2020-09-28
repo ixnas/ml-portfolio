@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+
 def getDenoisedImage(img):
     blurred = cv2.GaussianBlur(img, (5, 5), 0)
     eroded = cv2.erode(blurred, None, iterations=2)
