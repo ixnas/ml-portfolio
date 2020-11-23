@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+import time
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import preprocessing
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
@@ -52,6 +53,7 @@ def knn(images, tests, k):
 
 
 def showResults(visualWordsCount, k):
+	startTime = time.time()
 	print("Loading training set...")
 	trainingCategories = imgreader.getCategories(DIR_NAME_TRAIN)
 
@@ -61,9 +63,14 @@ def showResults(visualWordsCount, k):
 	print("Extracting features...")
 	(trainingData, testingData) = extraction.getTrainingData(
 		trainingCategories, testCategories, visualWordsCount)
+	endTime = time.time()
+	print("Training time: " + str(endTime - startTime))
 
+	startTime = time.time()
 	print("Testing model...")
 	testingResults = knn(trainingData, testingData, k)
+	endTime = time.time()
+	print("Testing time: " + str(endTime - startTime))
 
 	print("\nTotal:      " + str(testingResults[0]))
 	print("Correct:    " + str(testingResults[1]))
